@@ -1,29 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Guestbook Supabase</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guestbook Supabase</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
   <h1>Guestbook</h1>
 
+  <!-- AUTH BOX -->
   <div id="auth">
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Password">
+
     <button id="signup">Sign Up</button>
     <button id="login">Login</button>
     <button id="logout" style="display:none;">Logout</button>
   </div>
 
+  <!-- APP CONTENT -->
   <div id="app" style="display:none;">
     <textarea id="message" placeholder="Write a message"></textarea>
     <button id="send">Send</button>
+    
     <ul id="messages"></ul>
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js"></script>
+  <!-- JS -->
+  <script src="script.js"></script>
+
 </body>
 </html>
