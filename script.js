@@ -2,13 +2,14 @@
 const SUPABASE_URL = 'https://osufnxanlfypfhljemvj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zdWZueGFubGZ5cGZobGplbXZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4ODU4NTUsImV4cCI6MjA4MDQ2MTg1NX0.Nd9tSlKrknSENkQljdsmAQfj5RqGibXg1W5T6HauHE8';
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
 let editingNoteId = null;
 
 // Inizializzazione
 async function init() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabaseClient.auth.getUser();
     if (user) {
         currentUser = user;
         showApp();
@@ -54,7 +55,7 @@ async function signup() {
         return;
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabaseClient.auth.signUp({
         email: email,
         password: password,
     });
@@ -78,7 +79,7 @@ async function login() {
         return;
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: email,
         password: password,
     });
@@ -94,7 +95,7 @@ async function login() {
 
 // Logout
 async function logout() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     currentUser = null;
     showAuth();
     document.getElementById('loginEmail').value = '';
@@ -103,7 +104,7 @@ async function logout() {
 
 // Carica note
 async function loadNotes() {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('notes')
         .select('*')
         .order('created_at', { ascending: false });
@@ -150,7 +151,7 @@ async function saveNote() {
 
     if (editingNoteId) {
         // Update
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('notes')
             .update({ title, content })
             .eq('id', editingNoteId);
@@ -164,7 +165,7 @@ async function saveNote() {
         }
     } else {
         // Insert
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('notes')
             .insert([{ 
                 title, 
@@ -185,7 +186,7 @@ async function saveNote() {
 
 // Modifica nota
 async function editNote(id) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('notes')
         .select('*')
         .eq('id', id)
@@ -215,7 +216,7 @@ function cancelEdit() {
 async function deleteNote(id) {
     if (!confirm('Sei sicuro di voler eliminare questa nota?')) return;
 
-    const { error } = await supabase
+    const { error } = await supabaseClient
         .from('notes')
         .delete()
         .eq('id', id);
