@@ -2,7 +2,8 @@
 const SUPABASE_URL = 'https://rlawugnghqwntmxtgrmc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsYXd1Z25naHF3bnRteHRncm1jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NTk4OTEsImV4cCI6MjA4MDQzNTg5MX0.Tygk0YdJVi-csJyjKYeetbKxQKMHJg5n7CM3if99aAs';
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ⚠️ NOME CORRETTO:
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
@@ -17,35 +18,46 @@ const messagesList = document.getElementById('messages');
 
 // Signup
 signupBtn.addEventListener('click', async () => {
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await client.auth.signUp({
     email: emailInput.value,
     password: passwordInput.value
   });
-  if(error) alert(error.message);
-  else alert('Check your email to confirm sign up!');
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  alert("Signup OK! Controlla l'email se serve conferma.");
 });
 
 // Login
 loginBtn.addEventListener('click', async () => {
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await client.auth.signInWithPassword({
     email: emailInput.value,
     password: passwordInput.value
   });
-  if(error) alert(error.message);
-  else setupUser();
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  setupUser();
 });
 
 // Logout
 logoutBtn.addEventListener('click', async () => {
-  await supabase.auth.signOut();
+  await client.auth.signOut();
   appDiv.style.display = 'none';
   authDiv.style.display = 'block';
 });
 
 // Setup user session
 async function setupUser() {
-  const user = supabase.auth.getUser();
-  if(!user) return;
+  const { data: session } = await client.auth.getSession();
+  if (!session || !session.session) return;
+
   authDiv.style.display = 'none';
   appDiv.style.display = 'block';
   logoutBtn.style.display = 'inline';
@@ -54,18 +66,29 @@ async function setupUser() {
 
 // Send message
 sendBtn.addEventListener('click', async () => {
-  const user = (await supabase.auth.getUser()).data.user;
+  const { data: userData } = await client.auth.getUser();
+  const user = userData.user;
+
   const content = messageInput.value;
-  if(!content) return;
-  await supabase.from('messages').insert([{ user_id: user.id, content }]);
+  if (!content) return;
+
+  await client.from('messages').insert([{ user_id: user.id, content }]);
+
   messageInput.value = '';
   loadMessages();
 });
 
 // Load messages
 async function loadMessages() {
-  const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+  const { data, error } = await client
+    .from('messages')
+    .select('*')
+    .order('created_at', { ascending: true });
+
   messagesList.innerHTML = '';
+
+  if (!data) return;
+
   data.forEach(msg => {
     const li = document.createElement('li');
     li.textContent = msg.content;
@@ -73,7 +96,7 @@ async function loadMessages() {
   });
 }
 
-// Check session on page load
-supabase.auth.onAuthStateChange((_event, session) => {
-  if(session) setupUser();
+// Auto-login if session exists
+client.auth.onAuthStateChange((_event, session) => {
+  if (session) setupUser();
 });
