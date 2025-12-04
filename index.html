@@ -1,40 +1,80 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Guestbook Supabase</title>
-
-  <!-- CSS -->
-  <link rel="stylesheet" href="style.css">
-
-  <!-- Supabase JS SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Le Mie Note</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+    <div class="container">
+        <!-- Schermata di Login/Registrazione -->
+        <div id="authScreen" class="card">
+            <h1>Le Mie Note</h1>
+            <p style="color: #666; margin-bottom: 30px;">Accedi o registrati per iniziare</p>
+            
+            <div id="authMessage"></div>
 
-  <h1>Guestbook</h1>
+            <div id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="tuaemail@esempio.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="La tua password">
+                </div>
+                <button onclick="login()">Accedi</button>
+                <div class="auth-toggle">
+                    Non hai un account? <a href="#" onclick="showSignup(); return false;">Registrati</a>
+                </div>
+            </div>
 
-  <!-- AUTH BOX -->
-  <div id="auth">
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password">
+            <div id="signupForm" class="hidden">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="signupEmail" placeholder="tuaemail@esempio.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="signupPassword" placeholder="Almeno 6 caratteri">
+                </div>
+                <button onclick="signup()">Registrati</button>
+                <div class="auth-toggle">
+                    Hai già un account? <a href="#" onclick="showLogin(); return false;">Accedi</a>
+                </div>
+            </div>
+        </div>
 
-    <button id="signup">Sign Up</button>
-    <button id="login">Login</button>
-    <button id="logout" style="display:none;">Logout</button>
-  </div>
+        <!-- Schermata principale dell'app -->
+        <div id="appScreen" class="hidden">
+            <div class="card">
+                <h1>Le Mie Note</h1>
+                <div class="user-info">
+                    <span id="userEmail"></span> • <a href="#" onclick="logout(); return false;" style="color: #667eea;">Logout</a>
+                </div>
 
-  <!-- APP CONTENT -->
-  <div id="app" style="display:none;">
-    <textarea id="message" placeholder="Write a message"></textarea>
-    <button id="send">Send</button>
-    
-    <ul id="messages"></ul>
-  </div>
+                <div id="appMessage"></div>
 
-  <!-- JS -->
-  <script src="script.js"></script>
+                <div id="noteForm">
+                    <div class="form-group">
+                        <label>Titolo</label>
+                        <input type="text" id="noteTitle" placeholder="Titolo della nota">
+                    </div>
+                    <div class="form-group">
+                        <label>Contenuto</label>
+                        <textarea id="noteContent" placeholder="Scrivi qui la tua nota..."></textarea>
+                    </div>
+                    <button onclick="saveNote()">Salva Nota</button>
+                    <button class="secondary hidden" onclick="cancelEdit()" id="cancelBtn">Annulla</button>
+                </div>
+            </div>
 
+            <div id="notesList"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
