@@ -1,102 +1,258 @@
-// Inserisci qui i tuoi dati di Supabase
-const SUPABASE_URL = 'https://rlawugnghqwntmxtgrmc.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsYXd1Z25naHF3bnRteHRncm1jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NTk4OTEsImV4cCI6MjA4MDQzNTg5MX0.Tygk0YdJVi-csJyjKYeetbKxQKMHJg5n7CM3if99aAs';
+// SOSTITUISCI QUESTI VALORI CON I TUOI DA SUPABASE
+const SUPABASE_URL = 'https://osufnxanlfypfhljemvj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zdWZueGFubGZ5cGZobGplbXZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4ODU4NTUsImV4cCI6MjA4MDQ2MTg1NX0.Nd9tSlKrknSENkQljdsmAQfj5RqGibXg1W5T6HauHE8';
 
-// ⚠️ NOME CORRETTO:
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+let editingNoteId = null;
 
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
-const signupBtn = document.getElementById('signup');
-const loginBtn = document.getElementById('login');
-const logoutBtn = document.getElementById('logout');
-const authDiv = document.getElementById('auth');
-const appDiv = document.getElementById('app');
-const messageInput = document.getElementById('message');
-const sendBtn = document.getElementById('send');
-const messagesList = document.getElementById('messages');
+// Inizializzazione
+async function init() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+        currentUser = user;
+        showApp();
+        loadNotes();
+    } else {
+        showAuth();
+    }
+}
 
-// Signup
-signupBtn.addEventListener('click', async () => {
-  const { data, error } = await client.auth.signUp({
-    email: emailInput.value,
-    password: passwordInput.value
-  });
+// Mostra schermata auth
+function showAuth() {
+    document.getElementById('authScreen').classList.remove('hidden');
+    document.getElementById('appScreen').classList.add('hidden');
+}
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+// Mostra app
+function showApp() {
+    document.getElementById('authScreen').classList.add('hidden');
+    document.getElementById('appScreen').classList.remove('hidden');
+    document.getElementById('userEmail').textContent = currentUser.email;
+}
 
-  alert("Signup OK! Controlla l'email se serve conferma.");
-});
+// Toggle tra login e signup
+function showSignup() {
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('signupForm').classList.remove('hidden');
+    clearAuthMessage();
+}
+
+function showLogin() {
+    document.getElementById('signupForm').classList.add('hidden');
+    document.getElementById('loginForm').classList.remove('hidden');
+    clearAuthMessage();
+}
+
+// Registrazione
+async function signup() {
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
+
+    if (!email || !password) {
+        showAuthMessage('Compila tutti i campi', 'error');
+        return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+    });
+
+    if (error) {
+        showAuthMessage(error.message, 'error');
+    } else {
+        showAuthMessage('Registrazione completata! Controlla la tua email per confermare l\'account.', 'success');
+        document.getElementById('signupEmail').value = '';
+        document.getElementById('signupPassword').value = '';
+    }
+}
 
 // Login
-loginBtn.addEventListener('click', async () => {
-  const { data, error } = await client.auth.signInWithPassword({
-    email: emailInput.value,
-    password: passwordInput.value
-  });
+async function login() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+    if (!email || !password) {
+        showAuthMessage('Compila tutti i campi', 'error');
+        return;
+    }
 
-  setupUser();
-});
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+    });
+
+    if (error) {
+        showAuthMessage(error.message, 'error');
+    } else {
+        currentUser = data.user;
+        showApp();
+        loadNotes();
+    }
+}
 
 // Logout
-logoutBtn.addEventListener('click', async () => {
-  await client.auth.signOut();
-  appDiv.style.display = 'none';
-  authDiv.style.display = 'block';
-});
-
-// Setup user session
-async function setupUser() {
-  const { data: session } = await client.auth.getSession();
-  if (!session || !session.session) return;
-
-  authDiv.style.display = 'none';
-  appDiv.style.display = 'block';
-  logoutBtn.style.display = 'inline';
-  loadMessages();
+async function logout() {
+    await supabase.auth.signOut();
+    currentUser = null;
+    showAuth();
+    document.getElementById('loginEmail').value = '';
+    document.getElementById('loginPassword').value = '';
 }
 
-// Send message
-sendBtn.addEventListener('click', async () => {
-  const { data: userData } = await client.auth.getUser();
-  const user = userData.user;
+// Carica note
+async function loadNotes() {
+    const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  const content = messageInput.value;
-  if (!content) return;
+    if (error) {
+        showAppMessage('Errore nel caricamento delle note: ' + error.message, 'error');
+        return;
+    }
 
-  await client.from('messages').insert([{ user_id: user.id, content }]);
-
-  messageInput.value = '';
-  loadMessages();
-});
-
-// Load messages
-async function loadMessages() {
-  const { data, error } = await client
-    .from('messages')
-    .select('*')
-    .order('created_at', { ascending: true });
-
-  messagesList.innerHTML = '';
-
-  if (!data) return;
-
-  data.forEach(msg => {
-    const li = document.createElement('li');
-    li.textContent = msg.content;
-    messagesList.appendChild(li);
-  });
+    displayNotes(data);
 }
 
-// Auto-login if session exists
-client.auth.onAuthStateChange((_event, session) => {
-  if (session) setupUser();
-});
+// Mostra note
+function displayNotes(notes) {
+    const container = document.getElementById('notesList');
+    
+    if (notes.length === 0) {
+        container.innerHTML = '<div class="card"><p style="text-align: center; color: #999;">Nessuna nota ancora. Crea la tua prima nota!</p></div>';
+        return;
+    }
+
+    container.innerHTML = notes.map(note => `
+        <div class="card note">
+            <h3>${escapeHtml(note.title)}</h3>
+            <div class="note-date">${new Date(note.created_at).toLocaleDateString('it-IT')}</div>
+            <p>${escapeHtml(note.content || '')}</p>
+            <div class="note-actions">
+                <button onclick="editNote('${note.id}')">Modifica</button>
+                <button class="danger" onclick="deleteNote('${note.id}')">Elimina</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Salva nota
+async function saveNote() {
+    const title = document.getElementById('noteTitle').value;
+    const content = document.getElementById('noteContent').value;
+
+    if (!title) {
+        showAppMessage('Inserisci almeno un titolo', 'error');
+        return;
+    }
+
+    if (editingNoteId) {
+        // Update
+        const { error } = await supabase
+            .from('notes')
+            .update({ title, content })
+            .eq('id', editingNoteId);
+
+        if (error) {
+            showAppMessage('Errore nell\'aggiornamento: ' + error.message, 'error');
+        } else {
+            showAppMessage('Nota aggiornata!', 'success');
+            cancelEdit();
+            loadNotes();
+        }
+    } else {
+        // Insert
+        const { error } = await supabase
+            .from('notes')
+            .insert([{ 
+                title, 
+                content, 
+                user_id: currentUser.id 
+            }]);
+
+        if (error) {
+            showAppMessage('Errore nel salvataggio: ' + error.message, 'error');
+        } else {
+            showAppMessage('Nota salvata!', 'success');
+            document.getElementById('noteTitle').value = '';
+            document.getElementById('noteContent').value = '';
+            loadNotes();
+        }
+    }
+}
+
+// Modifica nota
+async function editNote(id) {
+    const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (error) {
+        showAppMessage('Errore: ' + error.message, 'error');
+        return;
+    }
+
+    editingNoteId = id;
+    document.getElementById('noteTitle').value = data.title;
+    document.getElementById('noteContent').value = data.content || '';
+    document.getElementById('cancelBtn').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Annulla modifica
+function cancelEdit() {
+    editingNoteId = null;
+    document.getElementById('noteTitle').value = '';
+    document.getElementById('noteContent').value = '';
+    document.getElementById('cancelBtn').classList.add('hidden');
+}
+
+// Elimina nota
+async function deleteNote(id) {
+    if (!confirm('Sei sicuro di voler eliminare questa nota?')) return;
+
+    const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        showAppMessage('Errore nell\'eliminazione: ' + error.message, 'error');
+    } else {
+        showAppMessage('Nota eliminata!', 'success');
+        loadNotes();
+    }
+}
+
+// Utility per i messaggi
+function showAuthMessage(message, type) {
+    const el = document.getElementById('authMessage');
+    el.className = type;
+    el.textContent = message;
+    setTimeout(() => el.className = '', 3000);
+}
+
+function showAppMessage(message, type) {
+    const el = document.getElementById('appMessage');
+    el.className = type;
+    el.textContent = message;
+    setTimeout(() => el.className = '', 3000);
+}
+
+function clearAuthMessage() {
+    document.getElementById('authMessage').className = '';
+    document.getElementById('authMessage').textContent = '';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Avvia l'app
+init();
